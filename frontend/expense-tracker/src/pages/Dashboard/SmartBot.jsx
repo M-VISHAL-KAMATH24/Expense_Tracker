@@ -1,65 +1,68 @@
-import React from 'react';
-import { FiZap } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext.jsx';
 
-const SmartBot = () => (
-  <div className='min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 p-8'>
-    <div className='max-w-6xl mx-auto space-y-8'>
-      {/* Header */}
-      <div className='text-center'>
-        <div className='w-28 h-28 bg-gradient-to-r from-purple-500 to-pink-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl'>
-          <FiZap className='text-4xl text-white' />
+const SmartBot = () => {
+  const { user, loading } = useAuth();
+  const [userId, setUserId] = useState('guest_user');
+
+  useEffect(() => {
+    if (!loading && user) {
+      const id = user?.id || user?.username || user?.email?.split('@')[0] || 'guest_user';
+      setUserId(id);
+      console.log('✅ User ID:', id);  // DEBUG
+    }
+  }, [user, loading]);
+
+  if (loading) {
+    return (
+      <div style={{minHeight: '100vh', background: 'linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        <div className='text-center p-8 max-w-md mx-auto'>
+          <div style={{width: 60, height: 60, border: '4px solid #e0e7ff', borderTop: '4px solid #6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px'}}></div>
+          <h2 className='text-2xl font-bold text-gray-800 mb-2'>Loading SmartBot...</h2>
+          <p className='text-gray-600'>Analyzing your financial data</p>
         </div>
-        <h1 className='text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4'>
-          SmartBot AI + Database
-        </h1>
-        <p className='text-xl text-gray-600 max-w-2xl mx-auto'>
-          Connected to your expenses + Gemini 2.0 Flash
-        </p>
       </div>
+    );
+  }
 
-      {/* SmartBot Chat IFRAME */}
-      <div className='grid lg:grid-cols-2 gap-8 items-start'>
-        <iframe
-          src="http://localhost:8001"
-          className='w-full h-[700px] rounded-3xl shadow-2xl border-0 bg-white/90 backdrop-blur-xl lg:col-span-1'
-          title="SmartBot AI Chat - Connected to Database"
-        />
-        
-        <div className='space-y-6 lg:order-1 bg-white/70 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-white/50'>
-          <h3 className='text-3xl font-bold text-gray-900 mb-4'>🚀 Auto-Analyzes Your Data:</h3>
-          
-          <div className='grid md:grid-cols-2 gap-6'>
-            <div className='p-6 bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl border border-emerald-200/50'>
-              <h4 className='text-xl font-bold text-emerald-800 mb-3'>📊 Database Data</h4>
-              <ul className='space-y-2 text-emerald-700'>
-                <li>• Auto-fetches expenses</li>
-                <li>• Income totals</li>
-                <li>• Category breakdown</li>
-              </ul>
-            </div>
-            
-            <div className='p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200/50'>
-              <h4 className='text-xl font-bold text-blue-800 mb-3'>💬 Chat Analysis</h4>
-              <ul className='space-y-2 text-blue-700'>
-                <li>• "Rent ₹12000" → extracts</li>
-                <li>• Combined totals</li>
-                <li>• Smart recommendations</li>
-              </ul>
-            </div>
+  return (
+    <div style={{minHeight: '100vh', background: 'linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%)', padding: 32}}>
+      <div style={{maxWidth: 1200, margin: '0 auto'}}>
+        {/* Header */}
+        <div style={{textAlign: 'center', marginBottom: 48}}>
+          <div style={{width: 112, height: 112, background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', boxShadow: '0 20px 40px rgba(139,92,246,0.3)'}}>
+            <span style={{fontSize: 48, color: 'white'}}>🤖</span>
           </div>
+          <h1 style={{fontSize: 48, fontWeight: 'bold', background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 16}}>
+            SmartBot AI
+          </h1>
+          <p style={{fontSize: 20, color: '#6b7280', marginBottom: 8}}>
+            Analyzing <strong>{userId}</strong>'s expenses
+          </p>
+        </div>
+
+        {/* IFRAME */}
+        <div style={{display: 'grid', gridTemplateColumns: '1fr', gap: 32}}>
+          <iframe
+            src={`http://localhost:8001/?userId=${encodeURIComponent(userId)}`}
+            style={{width: '100%', height: 700, borderRadius: 24, border: 'none', boxShadow: '0 25px 50px rgba(0,0,0,0.1)', background: 'white'}}
+            title={`SmartBot for ${userId}`}
+            onLoad={() => console.log('✅ SmartBot iframe loaded')}
+            onError={(e) => console.error('❌ SmartBot iframe error:', e)}
+          />
           
-          <div className='p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200/50'>
-            <h4 className='text-xl font-bold text-purple-800 mb-3'>🔗 Connected To:</h4>
-            <div className='flex flex-wrap gap-3 text-sm'>
-              <span className='px-3 py-1 bg-white/80 rounded-full text-purple-700 font-medium'>Backend API</span>
-              <span className='px-3 py-1 bg-white/80 rounded-full text-pink-700 font-medium'>Gemini 2.0</span>
-              <span className='px-3 py-1 bg-white/80 rounded-full text-emerald-700 font-medium'>Your Database</span>
-            </div>
+          {/* Status */}
+          <div style={{background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(20px)', padding: 32, borderRadius: 24, border: '1px solid rgba(255,255,255,0.5)', textAlign: 'center'}}>
+            <h3 style={{fontSize: 24, fontWeight: 'bold', color: '#1f2937', marginBottom: 16}}>🔗 Status</h3>
+            <p>User: <strong>{userId}</strong></p>
+            <p>Backend: <span style={{color: '#10b981'}}>localhost:5000</span></p>
+            <p>SmartBot: <span style={{color: '#3b82f6'}}>localhost:8001</span></p>
+            <a href={`http://localhost:8001/?userId=${userId}`} target="_blank" style={{color: '#8b5cf6', textDecoration: 'none'}}>🔗 Open Direct</a>
           </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default SmartBot;

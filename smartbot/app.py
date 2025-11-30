@@ -2,7 +2,7 @@ import os
 import json
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Query
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -29,7 +29,14 @@ model = genai.GenerativeModel(
     "gemini-2.0-flash",
     system_instruction=(
         "SmartBot AI - Connected to user's REAL expense database.\n"
-        "Always fetch DB data, extract new expenses from chat, and give combined analysis."
+        "You get CURRENT user's DB data + chat message.\n"
+        "ALWAYS show:\n"
+        "1. Database summary\n"
+        "2. New expenses extracted from chat\n"
+        "3. Combined analysis with tables\n"
+        "4. % of income spent per category\n"
+        "5. Actionable savings tips\n\n"
+        "Format with emojis, tables, numbered lists! 💰📊"
     )
 )
 
@@ -53,44 +60,45 @@ class ConnectionManager:
             except:
                 self.active_connections.remove(connection)
 
-
 manager = ConnectionManager()
 
-# Get database summary
-def get_user_database_data(user_id="default_user"):
+# ✅ FIXED: DYNAMIC USER DATABASE FETCH
+def get_user_database_data(user_id="guest_user"):
     try:
-        response = requests.get(
-            f"{BACKEND_URL}/api/expense/summary",
-            params={"userId": user_id},
-            timeout=5
-        )
+        # ✅ NEW ENDPOINT: /api/expense/summary/public/{userId}
+        response = requests.get(f"{BACKEND_URL}/api/expense/summary/public/{user_id}", timeout=5)
+        print(f"🔍 SmartBot fetching data for user: {user_id}")
+        
         if response.status_code == 200:
-            return response.json()
-    except Exception:
-        pass
-
-    return {"income": 0, "expenses": {}, "total": 0, "error": "Backend offline"}
-
-
-# Routes ============================================
+            data = response.json()
+            print(f"✅ {user_id}: Income ₹{data.get('income',0):,}, Total ₹{data.get('total',0):,}")
+            return data
+            
+    except Exception as e:
+        print(f"❌ DB Error for {user_id}: {e}")
+    
+    return {"income": 0, "expenses": {}, "total": 0, "userId": user_id, "error": "No data yet"}
 
 @app.get("/", response_class=HTMLResponse)
-async def get_chat(request: Request):
-    return templates.TemplateResponse("chat.html", {"request": request})
-
+async def get_chat(request: Request, user_id: str = Query("guest_user")):
+    return templates.TemplateResponse("chat.html", {"request": request, "user_id": user_id})
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, user_id: str = Query("guest_user")):
     await manager.connect(websocket)
 
-    # Initial DB pull
-    db_data = get_user_database_data()
-
+    # ✅ DYNAMIC USER DATA on connect
+    db_data = get_user_database_data(user_id)
+    
     welcome = (
-        f"🤖 Hi! I fetched your database:\n"
+        f"🤖 Hi {user_id}! Found YOUR database data:\n\n"
         f"💰 Income: ₹{db_data.get('income', 0):,}\n"
         f"📊 Total Expenses: ₹{db_data.get('total', 0):,}\n"
-        f"Ask me anything or add new expenses!"
+        f"📈 Categories tracked: {len(db_data.get('expenses', {}))}\n\n"
+        f"Ask me anything about YOUR finances!\n"
+        f"💬 'What are my expenses?'\n"
+        f"💬 'Analyze my rent spending'\n"
+        f"💬 'Rent ₹12000, food ₹5000'"
     )
 
     await manager.broadcast(json.dumps({
@@ -103,20 +111,28 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             user_msg = json.loads(data).get("message", "")
-            print("User:", user_msg)
+            print(f"👤 {user_id}: {user_msg}")
 
-            db_data = get_user_database_data()
+            # ✅ ALWAYS fetch CURRENT user's DB
+            db_data = get_user_database_data(user_id)
 
-            prompt = f"""
-User said: "{user_msg}"
+            prompt = f"""🔗 USER DATA FOR: {user_id}
 
 📌 CURRENT DATABASE:
 Income: ₹{db_data.get('income', 0):,}
-Expenses: {db_data.get('expenses', {})}
+Total Expenses: ₹{db_data.get('total', 0):,}
+Expenses by category: {db_data.get('expenses', {})}
 
-🔍 Extract any NEW expenses from the chat.
-📊 Then generate a combined financial analysis in table format.
-"""
+💬 USER SAID: "{user_msg}"
+
+📊 TASKS:
+1. Extract NEW expenses from chat message
+2. Combine with database data  
+3. Show professional table analysis
+4. Calculate % of income spent per category
+5. Give 3 actionable savings tips
+
+**Format with tables + emojis! 💰**"""
 
             response = model.generate_content(prompt)
             bot_reply = response.text
@@ -124,41 +140,47 @@ Expenses: {db_data.get('expenses', {})}
             await manager.broadcast(json.dumps({
                 "message": bot_reply,
                 "isUser": False,
-                "model": "gemini-2.0-flash-db"
+                "model": "gemini-2.0-flash"
             }))
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-
-
-# REST API =================================================
+    except Exception as e:
+        print(f"❌ WebSocket error: {e}")
 
 @app.post("/api/chat")
 async def chat_api(request: Request):
     data = await request.json()
     user_message = data.get("message", "")
-    user_id = data.get("userId", "default_user")
+    user_id = data.get("userId", "guest_user")
 
     db_data = get_user_database_data(user_id)
 
-    prompt = f"""
-DATABASE: {db_data}
+    prompt = f"""DATABASE FOR {user_id}: {db_data}
 USER: {user_message}
 
-➡ Generate combined analysis.
-"""
+➡ Combined analysis in table format."""
 
     response = model.generate_content(prompt)
 
     return {
         "response": response.text,
-        "database": db_data
+        "database": db_data,
+        "userId": user_id
     }
 
-
-# Run server ============================================
+@app.get("/health")
+async def health_check(user_id: str = Query("guest_user")):
+    db_data = get_user_database_data(user_id)
+    return {
+        "status": "healthy", 
+        "userId": user_id,
+        "database": db_data,
+        "backend": BACKEND_URL
+    }
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8001))
     print(f"🚀 SmartBot connected to backend: {BACKEND_URL}")
+    print(f"📡 Ready for any user! Try: http://localhost:{port}/?userId=john_doe")
     uvicorn.run(app, host="0.0.0.0", port=port)

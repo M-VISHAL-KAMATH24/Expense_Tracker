@@ -44,12 +44,11 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ NEW SUMMARY ENDPOINT (auth protected)
+// ✅ AUTH PROTECTED SUMMARY (existing)
 router.get('/summary', authMiddleware, async (req, res) => {
   try {
     const userId = req.userId;
     
-    // Get expenses by category
     const expenses = await Expense.find({ userId });
     const expenseByCategory = {};
     let totalExpenses = 0;
@@ -60,16 +59,49 @@ router.get('/summary', authMiddleware, async (req, res) => {
       totalExpenses += exp.amount;
     });
     
-    // Default income = 0 (until income.js is added)
-    const income = 0;
-    
     res.json({
-      income,
+      income: 0,
       total: totalExpenses,
-      expenses: expenseByCategory
+      expenses: expenseByCategory,
+      userId: userId
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ NEW: DYNAMIC USER PUBLIC ENDPOINT (ANY USER!)
+router.get('/summary/public/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    console.log(`🔍 SmartBot fetching data for user: ${userId}`);
+    
+    const expenses = await Expense.find({ userId });
+    
+    const expenseByCategory = {};
+    let totalExpenses = 0;
+    
+    expenses.forEach(exp => {
+      const category = exp.category;
+      expenseByCategory[category] = (expenseByCategory[category] || 0) + exp.amount;
+      totalExpenses += exp.amount;
+    });
+    
+    const response = {
+      userId,
+      income: 0,  // Add Income support later
+      total: totalExpenses,
+      expenses: expenseByCategory,
+      count: expenses.length,
+      message: `Found ${expenses.length} expenses for ${userId}`
+    };
+    
+    console.log(`✅ ${userId}: Total ₹${totalExpenses.toLocaleString()}, ${Object.keys(expenseByCategory).length} categories`);
+    res.json(response);
+  } catch (error) {
+    console.error(`❌ Error fetching ${req.params.userId}:`, error.message);
+    res.status(500).json({ error: error.message, userId: req.params.userId });
   }
 });
 
