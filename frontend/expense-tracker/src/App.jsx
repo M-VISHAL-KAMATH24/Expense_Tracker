@@ -8,6 +8,7 @@ import {
 import AuthLayout from './components/layouts/AuthLayout';
 import Login from './pages/Auth/Login';
 import SignUp from './pages/Auth/SignUp';  // ✅ Added
+import Home from './pages/Dashboard/Home';
 
 const Root = () => {
   const isAuthenticated = !!localStorage.getItem("token");
@@ -39,6 +40,8 @@ const App = () => {
             </AuthLayout>
           }
         />
+        <Route path="/dashboard" element={<Home />} />
+
       </Routes>
     </Router>
   );
