@@ -1,0 +1,13 @@
+npm i react-icons axios emoji-picker-react react-router-dom recharts react-hot-toast
+
+react-icons: Provides SVG icons from popular libraries (Font Awesome, Material, etc.) as React components.​
+
+axios: Promise-based HTTP client for making API requests.​
+
+emoji-picker-react: Customizable emoji picker component for React apps.​
+
+react-router-dom: Declarative routing for React SPAs with browser history.​
+
+recharts: Composable charting library built with React and D3.​
+
+react-hot-toast: Lightweight, customizable toast notifications
