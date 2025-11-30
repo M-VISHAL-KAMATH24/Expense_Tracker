@@ -15,6 +15,7 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
+// ✅ YOUR EXISTING ROUTES (UNCHANGED)
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const expense = new Expense({ ...req.body, userId: req.userId });
@@ -40,6 +41,35 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     res.json({ message: 'Deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// ✅ NEW SUMMARY ENDPOINT (auth protected)
+router.get('/summary', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    
+    // Get expenses by category
+    const expenses = await Expense.find({ userId });
+    const expenseByCategory = {};
+    let totalExpenses = 0;
+    
+    expenses.forEach(exp => {
+      const category = exp.category;
+      expenseByCategory[category] = (expenseByCategory[category] || 0) + exp.amount;
+      totalExpenses += exp.amount;
+    });
+    
+    // Default income = 0 (until income.js is added)
+    const income = 0;
+    
+    res.json({
+      income,
+      total: totalExpenses,
+      expenses: expenseByCategory
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

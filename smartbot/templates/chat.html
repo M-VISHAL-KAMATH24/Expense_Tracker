@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gemini 2.0 Flash SmartBot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .message-bubble { max-width: 70%; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-screen">
+    <div class="max-w-4xl mx-auto p-6">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <div class="inline-flex items-center space-x-3 bg-gradient-to-r from-purple-500 to-pink-600 bg-clip-text text-transparent text-4xl font-bold mb-4">
+                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                <span>SmartBot AI</span>
+            </div>
+            <p class="text-xl text-gray-600">Your expense tracking assistant powered by Gemini 2.0 Flash 🤖</p>
+        </div>
+
+        <!-- Chat Container -->
+        <div id="chatContainer" class="bg-white/20 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/30 max-h-96 overflow-y-auto space-y-4 mb-8">
+            <div class="flex items-center space-x-3 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-2xl border border-purple-200/50">
+                <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-semibold text-purple-900">SmartBot</p>
+                    <p class="text-sm text-purple-700">Hi! Ask me about expenses, budgets, or savings tips! 💰</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input -->
+        <div class="flex space-x-4 p-4 bg-white/30 backdrop-blur-xl rounded-3xl border border-white/50 shadow-xl">
+            <div class="flex-1 relative">
+                <input 
+                    id="messageInput" 
+                    type="text" 
+                    placeholder="Ask about expenses, budgets, or savings tips..."
+                    class="w-full p-5 pr-16 text-lg rounded-2xl bg-white/80 border-2 border-gray-200/50 focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500/50 focus:outline-none shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                <button onclick="sendMessage()" class="absolute right-3 top-1/2 transform -translate-y-1/2 p-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket(`ws://localhost:8001/ws`);
+        const chatContainer = document.getElementById('chatContainer');
+        const messageInput = document.getElementById('messageInput');
+
+        ws.onopen = function() {
+            console.log('✅ WebSocket Connected!');
+        };
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            addMessage(data.message, data.isUser);
+        };
+
+        ws.onerror = function(error) {
+            console.error('WebSocket Error:', error);
+        };
+
+        function addMessage(message, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'} items-start space-x-3 p-4 rounded-2xl shadow-lg transform transition-all duration-300 hover:scale-105 message-bubble`;
+            
+            const avatar = isUser 
+                ? '<div class="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center order-2"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg></div>'
+                : '<div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center order-2"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></div>';
+            
+            const content = isUser 
+                ? `<div class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-5 rounded-2xl max-w-xs lg:max-w-md order-1">${message}</div>`
+                : `<div class="bg-white/80 backdrop-blur-xl text-gray-900 p-5 rounded-2xl border border-gray-200/50 max-w-xs lg:max-w-md order-1 shadow-xl">${message}</div>`;
+            
+            messageDiv.innerHTML = isUser ? content + avatar : avatar + content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            addMessage(message, true);
+            ws.send(JSON.stringify({ message: message }));
+            messageInput.value = '';
+        }
+
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
