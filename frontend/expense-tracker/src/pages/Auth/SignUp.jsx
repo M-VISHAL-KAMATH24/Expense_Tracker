@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import axios from 'axios'  // ✅ Added
 import { FiEye, FiEyeOff } from 'react-icons/fi'
 
 const SignUp = () => {
@@ -12,40 +13,52 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const navigate = useNavigate()
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+    setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!')
+      setError('Passwords do not match!')
       return
     }
     
     setLoading(true)
-    
-    // Simulate API call
-    setTimeout(() => {
-      localStorage.setItem('token', 'fake-jwt-token')
-      setLoading(false)
+    setError('')
+
+    try {
+      // ✅ REAL API CALL
+      const res = await axios.post('http://localhost:5000/api/auth/signup', {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password
+      })
+      
+      // ✅ Save REAL JWT token
+      localStorage.setItem('token', res.data.token)
       navigate('/dashboard')
-    }, 1500)
+    } catch (error) {
+      setError(error.response?.data?.message || 'Signup failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className='w-full max-w-md mx-auto'>
+      {error && (
+        <div className='bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl mb-6'>
+          {error}
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className='space-y-6'>
-        {/* Name */}
         <div>
-          <label className='block text-sm font-medium text-gray-700 mb-2'>
-            Full Name
-          </label>
+          <label className='block text-sm font-medium text-gray-700 mb-2'>Full Name</label>
           <input
             type='text'
             name='name'
@@ -57,11 +70,8 @@ const SignUp = () => {
           />
         </div>
 
-        {/* Email */}
         <div>
-          <label className='block text-sm font-medium text-gray-700 mb-2'>
-            Email Address
-          </label>
+          <label className='block text-sm font-medium text-gray-700 mb-2'>Email Address</label>
           <input
             type='email'
             name='email'
@@ -73,11 +83,8 @@ const SignUp = () => {
           />
         </div>
 
-        {/* Password */}
         <div>
-          <label className='block text-sm font-medium text-gray-700 mb-2'>
-            Password
-          </label>
+          <label className='block text-sm font-medium text-gray-700 mb-2'>Password</label>
           <div className='relative'>
             <input
               type={showPassword ? 'text' : 'password'}
@@ -98,11 +105,8 @@ const SignUp = () => {
           </div>
         </div>
 
-        {/* Confirm Password */}
         <div>
-          <label className='block text-sm font-medium text-gray-700 mb-2'>
-            Confirm Password
-          </label>
+          <label className='block text-sm font-medium text-gray-700 mb-2'>Confirm Password</label>
           <div className='relative'>
             <input
               type={showConfirmPassword ? 'text' : 'password'}
@@ -123,7 +127,6 @@ const SignUp = () => {
           </div>
         </div>
 
-        {/* Submit Button */}
         <button
           type='submit'
           disabled={loading}
@@ -140,7 +143,6 @@ const SignUp = () => {
         </button>
       </form>
 
-      {/* Login Link */}
       <p className='text-center mt-8 text-sm text-gray-600'>
         Already have an account?{' '}
         <Link to='/login' className='font-semibold text-purple-600 hover:text-purple-700 transition-colors'>

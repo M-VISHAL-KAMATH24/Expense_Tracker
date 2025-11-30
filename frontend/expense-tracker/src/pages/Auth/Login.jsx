@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import axios from 'axios'  // ✅ Added
 import { FiEye, FiEyeOff } from 'react-icons/fi'
 
 const Login = () => {
@@ -7,29 +8,42 @@ const Login = () => {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setError('')
 
-    // Simulate API call
-    setTimeout(() => {
-      // Save token to localStorage
-      localStorage.setItem('token', 'fake-jwt-token')
-      setLoading(false)
+    try {
+      // ✅ REAL API CALL
+      const res = await axios.post('http://localhost:5000/api/auth/login', {
+        email,
+        password
+      })
+      
+      // ✅ Save REAL JWT token
+      localStorage.setItem('token', res.data.token)
       navigate('/dashboard')
-    }, 1500)
+    } catch (error) {
+      setError(error.response?.data?.message || 'Login failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className='w-full max-w-md mx-auto'>
+      {error && (
+        <div className='bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl mb-6'>
+          {error}
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className='space-y-6'>
-        {/* Email */}
         <div>
-          <label className='block text-sm font-medium text-gray-700 mb-2'>
-            Email Address
-          </label>
+          <label className='block text-sm font-medium text-gray-700 mb-2'>Email Address</label>
           <input
             type='email'
             value={email}
@@ -40,11 +54,8 @@ const Login = () => {
           />
         </div>
 
-        {/* Password */}
         <div>
-          <label className='block text-sm font-medium text-gray-700 mb-2'>
-            Password
-          </label>
+          <label className='block text-sm font-medium text-gray-700 mb-2'>Password</label>
           <div className='relative'>
             <input
               type={showPassword ? 'text' : 'password'}
@@ -64,7 +75,6 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Submit Button */}
         <button
           type='submit'
           disabled={loading}
@@ -81,7 +91,6 @@ const Login = () => {
         </button>
       </form>
 
-      {/* Register Link */}
       <p className='text-center mt-8 text-sm text-gray-600'>
         Don't have an account?{' '}
         <Link to='/signup' className='font-semibold text-purple-600 hover:text-purple-700 transition-colors'>
